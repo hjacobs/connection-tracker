@@ -129,7 +129,8 @@ def get_connections(account_id, region, connections=None):
     connections = collections.Counter() if connections is None else connections
     now = datetime.datetime.utcnow()
     start_time = LAST_TIMES.get(account_id, now - datetime.timedelta(minutes=10))
-    reader = FlowLogsReader('VPCFlowLogs', region_name=region, start_time=start_time, end_time=now) #, interfaces=interfaces.keys())
+    reader = FlowLogsReader('vpc-flowgroup', region_name=region, start_time=start_time, end_time=now) #, interfaces=interfaces.keys())
+    reader.logs_client = session.client('logs')
     record_count = 0
     for record in reader:
         if record.action == 'ACCEPT':
@@ -138,7 +139,9 @@ def get_connections(account_id, region, connections=None):
             if record.interface_id in interfaces and src not in STUPS_CIDR:
                 dst = ipaddress.ip_address(record.dstaddr)
                 name = NAMES.get(record.srcaddr, record.srcaddr)
-                dest = interfaces.get(record.interface_id, {}).get('Description') or NAMES.get(record.dstaddr, local_names.get(record.dstaddr, record.dstaddr))
+                dest = interfaces.get(record.interface_id, {}).get('Description')
+                if not dest or dest.startswith('Primary'):
+                    dest = NAMES.get(record.dstaddr, local_names.get(record.dstaddr, record.dstaddr))
                 if 'NAT' not in dest and ('Odd' not in dest or record.dstport == 22):
                     conn = (name, dest, record.dstport)
                     if conn not in connections:
