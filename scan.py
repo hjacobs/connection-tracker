@@ -131,13 +131,13 @@ def get_connections(account_id, region, connections=None):
     connections = collections.Counter() if connections is None else connections
     now = datetime.datetime.utcnow()
     start_time = LAST_TIMES.get(account_id, now - datetime.timedelta(minutes=10))
-    reader = FlowLogsReader('VPCFlowLogs', region_name=region, start_time=start_time, end_time=now, interfaces=interfaces.keys())
+    reader = FlowLogsReader('VPCFlowLogs', region_name=region, start_time=start_time, end_time=now) #, interfaces=interfaces.keys())
     record_count = 0
     for record in reader:
         if record.action == 'ACCEPT':
             record_count += 1
             src = ipaddress.ip_address(record.srcaddr)
-            if src not in STUPS_CIDR:
+            if record.interface_id in interfaces and src not in STUPS_CIDR:
                 dst = ipaddress.ip_address(record.dstaddr)
                 name = NAMES.get(record.srcaddr, record.srcaddr)
                 dest = interfaces.get(record.interface_id, {}).get('Description') or NAMES.get(record.dstaddr, record.dstaddr)
