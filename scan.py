@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import collections
 from clickclick import Action, info
+import datetime
 import boto3
 import ipaddress
 import socket
@@ -76,12 +78,9 @@ ec2_client = boto3.client('ec2')
 elb = boto3.client('elb')
 
 
-
-
 res = elb.describe_load_balancers()
 for lb in res['LoadBalancerDescriptions']:
     if lb['Scheme'] == 'internet-facing':
-        print(lb['DNSName'])
         for sg_id in lb['SecurityGroups']:
             sg = ec2.SecurityGroup(sg_id)
             allow_all = False
@@ -90,37 +89,47 @@ for lb in res['LoadBalancerDescriptions']:
                     if ip_range['CidrIp'] == '0.0.0.0/0':
                         allow_all = True
                         break
-            print(allow_all)
+            if allow_all:
+                info('LB {} allows traffic from everywhere'.format(lb['DNSName']))
 
 instance_ids = []
 interfaces = {}
 
-res = ec2_client.describe_network_interfaces() #NetworkInterfaceIds=if_ids)
-for iface in res['NetworkInterfaces']:
-    print(iface)
-    if iface['Attachment']['InstanceOwnerId'].startswith('amazon'):
-        interfaces[iface['NetworkInterfaceId']] = iface
-    if 'InstanceId' in iface['Attachment']:
-        instance_ids.append(iface['Attachment']['InstanceId'])
+with Action('Collecting network interfaces..'):
+    res = ec2_client.describe_network_interfaces()
+    for iface in res['NetworkInterfaces']:
+        if 'Association' in iface:
+            # public IP involved
+            interfaces[iface['NetworkInterfaceId']] = iface
+        if 'InstanceId' in iface['Attachment']:
+            instance_ids.append(iface['Attachment']['InstanceId'])
 
-res = ec2_client.describe_instances(InstanceIds=instance_ids)
-for reservation in res['Reservations']:
-    for inst in reservation['Instances']:
-        if 'PublicIpAddress' in inst and inst['PublicIpAddress'] not in NAMES:
-            NAMES[inst['PublicIpAddress']] = ''.join([x['Value'] for x in inst['Tags'] if x['Key'] == 'Name'])
-        #print(inst, inst['Tags'])
+with Action('Collecting public EC2 instances..'):
+    res = ec2_client.describe_instances(InstanceIds=instance_ids)
+    for reservation in res['Reservations']:
+        for inst in reservation['Instances']:
+            if 'PublicIpAddress' in inst and inst['PublicIpAddress'] not in NAMES:
+                NAMES[inst['PublicIpAddress']] = ''.join([x['Value'] for x in inst['Tags'] if x['Key'] == 'Name'])
+            if 'PrivateIpAddress' in inst:
+                NAMES[inst['PrivateIpAddress']] = ''.join([x['Value'] for x in inst['Tags'] if x['Key'] == 'Name'])
 
 
-connections = set()
-reader = FlowLogsReader('VPCFlowLogs', region_name='eu-west-1')
+connections = collections.Counter()
+now = datetime.datetime.utcnow()
+start_time = now - datetime.timedelta(minutes=60)
+reader = FlowLogsReader('VPCFlowLogs', region_name='eu-west-1', start_time=start_time)
 for record in reader:
-    if record.action == 'ACCEPT' and record.log_status == 'OK':
+    if record.action == 'ACCEPT':
         src = ipaddress.ip_address(record.srcaddr)
         if record.interface_id in interfaces and src not in STUPS_CIDR:
             dst = ipaddress.ip_address(record.dstaddr)
             name = NAMES.get(record.srcaddr, record.srcaddr)
-            dest = interfaces.get(record.interface_id).get('Description')
-            conn = (name, dest, record.dstport)
-            if not conn in connections:
-                connections.add(conn)
-                print(conn)
+            dest = interfaces.get(record.interface_id).get('Description') or NAMES.get(record.dstaddr, record.dstaddr)
+            if 'NAT' not in dest and 'Odd' not in dest:
+                conn = (name, dest, record.dstport)
+                if conn not in connections:
+                    print(' '.join(map(str, conn)))
+                connections[conn] += 1
+
+for conn, count in connections.most_common(50):
+    print(' '.join(map(str, conn)), count)
