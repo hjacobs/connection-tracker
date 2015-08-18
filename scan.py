@@ -100,7 +100,6 @@ def get_connections(account_id, region, connections=None):
                       region_name=region
                       )
 
-    ec2 = session.resource('ec2')
     ec2_client = session.client('ec2')
 
     instance_ids = []
@@ -115,16 +114,15 @@ def get_connections(account_id, region, connections=None):
             if 'Attachment' in iface and 'InstanceId' in iface['Attachment']:
                 instance_ids.append(iface['Attachment']['InstanceId'])
 
+    local_names = {}
     instance_count = 0
     with Action('Collecting public EC2 instances..'):
         res = ec2_client.describe_instances(InstanceIds=instance_ids)
         for reservation in res['Reservations']:
             for inst in reservation['Instances']:
                 instance_count += 1
-                if 'PublicIpAddress' in inst and inst['PublicIpAddress'] not in NAMES and 'Tags' in inst:
-                    NAMES[inst['PublicIpAddress']] = ''.join([x['Value'] for x in inst['Tags'] if x['Key'] == 'Name'])
                 if 'PrivateIpAddress' in inst and 'Tags' in inst:
-                    NAMES[inst['PrivateIpAddress']] = ''.join([x['Value'] for x in inst['Tags'] if x['Key'] == 'Name'])
+                    local_names[inst['PrivateIpAddress']] = ''.join([x['Value'] for x in inst['Tags'] if x['Key'] == 'Name'])
 
     logging.info('Got {} interfaces and {} instances'.format(len(interfaces), instance_count))
 
@@ -140,7 +138,7 @@ def get_connections(account_id, region, connections=None):
             if record.interface_id in interfaces and src not in STUPS_CIDR:
                 dst = ipaddress.ip_address(record.dstaddr)
                 name = NAMES.get(record.srcaddr, record.srcaddr)
-                dest = interfaces.get(record.interface_id, {}).get('Description') or NAMES.get(record.dstaddr, record.dstaddr)
+                dest = interfaces.get(record.interface_id, {}).get('Description') or NAMES.get(record.dstaddr, local_names.get(record.dstaddr, record.dstaddr))
                 if 'NAT' not in dest and ('Odd' not in dest or record.dstport == 22):
                     conn = (name, dest, record.dstport)
                     if conn not in connections:
@@ -152,80 +150,8 @@ def get_connections(account_id, region, connections=None):
 
 
 def main():
-    try:
-        with open(sys.argv[2]) as fd:
-            NAMES = yaml.load(fd)
-    except:
-        with open(sys.argv[1]) as fd:
-            config = yaml.load(fd)
-        addresses = get_trusted_addresses(config)
-        NAMES.update(addresses)
+    pass
 
-    with open(sys.argv[2], 'w') as fd:
-        yaml.dump(NAMES, fd)
-
-
-    ec2 = boto3.resource('ec2')
-    ec2_client = boto3.client('ec2')
-
-    elb = boto3.client('elb')
-
-
-    res = elb.describe_load_balancers()
-    for lb in res['LoadBalancerDescriptions']:
-        if lb['Scheme'] == 'internet-facing':
-            for sg_id in lb['SecurityGroups']:
-                sg = ec2.SecurityGroup(sg_id)
-                allow_all = False
-                for rule in sg.ip_permissions:
-                    for ip_range in rule['IpRanges']:
-                        if ip_range['CidrIp'] == '0.0.0.0/0':
-                            allow_all = True
-                            break
-                if allow_all:
-                    info('LB {} allows traffic from everywhere'.format(lb['DNSName']))
-
-    instance_ids = []
-    interfaces = {}
-
-    with Action('Collecting network interfaces..'):
-        res = ec2_client.describe_network_interfaces()
-        for iface in res['NetworkInterfaces']:
-            if 'Association' in iface:
-                # public IP involved
-                interfaces[iface['NetworkInterfaceId']] = iface
-            if 'Attachment' in iface and 'InstanceId' in iface['Attachment']:
-                instance_ids.append(iface['Attachment']['InstanceId'])
-
-    with Action('Collecting public EC2 instances..'):
-        res = ec2_client.describe_instances(InstanceIds=instance_ids)
-        for reservation in res['Reservations']:
-            for inst in reservation['Instances']:
-                if 'PublicIpAddress' in inst and inst['PublicIpAddress'] not in NAMES and 'Tags' in inst:
-                    NAMES[inst['PublicIpAddress']] = ''.join([x['Value'] for x in inst['Tags'] if x['Key'] == 'Name'])
-                if 'PrivateIpAddress' in inst and 'Tags' in inst:
-                    NAMES[inst['PrivateIpAddress']] = ''.join([x['Value'] for x in inst['Tags'] if x['Key'] == 'Name'])
-
-
-    connections = collections.Counter()
-    now = datetime.datetime.utcnow()
-    start_time = now - datetime.timedelta(minutes=60)
-    reader = FlowLogsReader('VPCFlowLogs', region_name='eu-west-1', start_time=start_time)
-    for record in reader:
-        if record.action == 'ACCEPT':
-            src = ipaddress.ip_address(record.srcaddr)
-            if record.interface_id in interfaces and src not in STUPS_CIDR:
-                dst = ipaddress.ip_address(record.dstaddr)
-                name = NAMES.get(record.srcaddr, record.srcaddr)
-                dest = interfaces.get(record.interface_id).get('Description') or NAMES.get(record.dstaddr, record.dstaddr)
-                if 'NAT' not in dest and ('Odd' not in dest or record.dstport == 22):
-                    conn = (name, dest, record.dstport)
-                    if conn not in connections:
-                        print(' '.join(map(str, conn)))
-                    connections[conn] += 1
-
-    for conn, count in connections.most_common(50):
-        print(' '.join(map(str, conn)), count)
 
 if __name__ == '__main__':
     main()
