@@ -60,7 +60,7 @@ class BackgroundThread(threading.Thread):
         scan.update_addresses()
         account_ids = collections.defaultdict(list)
         for acc in scan.ACCOUNTS:
-            account_ids[hash(acc) % 8].append(acc)
+            account_ids[hash(acc) % 4].append(acc)
 
         for ids in account_ids.values():
             thread = BackgroundAccountThread(ids)

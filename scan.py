@@ -137,11 +137,11 @@ def get_connections(account_id, region, connections=None):
         if record.action == 'ACCEPT':
             record_count += 1
             src = ipaddress.ip_address(record.srcaddr)
-            if record.interface_id in interfaces and src not in STUPS_CIDR:
+            if src not in STUPS_CIDR:
                 dst = ipaddress.ip_address(record.dstaddr)
                 name = NAMES.get(record.srcaddr, record.srcaddr)
-                dest = interfaces.get(record.interface_id).get('Description') or NAMES.get(record.dstaddr, record.dstaddr)
-                if 'NAT' not in dest and 'Odd' not in dest:
+                dest = interfaces.get(record.interface_id, {}).get('Description') or NAMES.get(record.dstaddr, record.dstaddr)
+                if 'NAT' not in dest and ('Odd' not in dest or record.dstport == 22):
                     conn = (name, dest, record.dstport)
                     if conn not in connections:
                         print(' '.join(map(str, conn)))
