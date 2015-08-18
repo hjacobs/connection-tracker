@@ -1,2 +1,5 @@
 boto3
+connexion
+gevent>=1.1b1
 flowlogs_reader
+stups-tokens

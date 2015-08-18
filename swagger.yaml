@@ -1,0 +1,53 @@
+swagger: '2.0'
+info:
+  title: Connections
+  version: "0.1"
+consumes:
+  - application/json
+produces:
+  - application/json
+security:
+  # enable OAuth protection for all REST endpoints
+  # (only active if the HTTP_TOKENINFO_URL environment variable is set)
+  - oauth2: [uid]
+paths:
+  /accounts:
+    get:
+      tags: [Connections]
+      operationId: app.get_accounts
+      responses:
+        200:
+          description: res
+  /connections:
+    get:
+      tags: [Connections]
+      operationId: app.get_connections
+      responses:
+        200:
+          description: res
+  /connections/{account_id}/{region}:
+    get:
+      tags: [Connections]
+      operationId: app.get_connections_by_account
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          type: string
+        - name: region
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: res
+
+
+securityDefinitions:
+  oauth2:
+    type: oauth2
+    flow: implicit
+    authorizationUrl: https://example.com/oauth2/dialog
+    x-tokenInfoUrl: "{{ tokeninfo_url if tokeninfo_url }}"
+    scopes:
+      uid: Unique identifier of the user accessing the service.
