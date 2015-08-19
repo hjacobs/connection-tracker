@@ -66,6 +66,10 @@ class BackgroundThread(threading.Thread):
             thread.start()
 
 
+def get_health():
+    return 'OK'
+
+
 def get_accounts():
     return scan.ACCOUNTS
 

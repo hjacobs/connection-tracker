@@ -11,6 +11,12 @@ security:
   # (only active if the HTTP_TOKENINFO_URL environment variable is set)
   - oauth2: [uid]
 paths:
+  /health:
+    get:
+      operationId: app.get_health
+      responses:
+        200:
+          description: app is healthy
   /accounts:
     get:
       tags: [Connections]
