@@ -29,6 +29,29 @@ paths:
       responses:
         200:
           description: res
+  /endpoints:
+    get:
+      tags: [Connections]
+      operationId: app.get_endpoints
+      responses:
+        200:
+          description: res
+  /endpoints/{account_id}/{region}:
+    get:
+      tags: [Connections]
+      operationId: app.get_endpoints_by_account
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          type: string
+        - name: region
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: res
   /accounts:
     get:
       tags: [Connections]

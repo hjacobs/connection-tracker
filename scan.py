@@ -11,8 +11,6 @@ import socket
 import tokens
 from flowlogs_reader import FlowLogsReader
 
-STUPS_CIDR = ipaddress.ip_network('172.31.0.0/16')
-
 AZ_NAMES_BY_REGION = {}
 NAMES = {}
 ACCOUNTS = {}
@@ -97,18 +95,31 @@ def get_connections(account_id, region, connections=None):
                             region_name=region)
 
     ec2_client = session.client('ec2')
+    elb = session.client('elb')
 
     instance_ids = []
     interfaces = {}
 
     logging.info('%s: Collecting network interfaces..', account_id)
     res = ec2_client.describe_network_interfaces()
+    lb_names = []
     for iface in res['NetworkInterfaces']:
         if 'Association' in iface:
             # public IP involved
             interfaces[iface['NetworkInterfaceId']] = iface
+            descr = iface.get('Description')
+            if descr.startswith('ELB'):
+                words = descr.split()
+                lb_names.append(words[-1])
+
         if 'Attachment' in iface and 'InstanceId' in iface['Attachment']:
             instance_ids.append(iface['Attachment']['InstanceId'])
+
+    res = elb.describe_load_balancers(LoadBalancerNames=lb_names)
+    lb_dns_names = {}
+    for lb in res['LoadBalancerDescriptions']:
+        lb_dns_names[lb['LoadBalancerName']] = lb['DNSName']
+
 
     local_names = {}
     instance_count = 0
@@ -118,7 +129,7 @@ def get_connections(account_id, region, connections=None):
         for inst in reservation['Instances']:
             instance_count += 1
             if 'PrivateIpAddress' in inst and 'Tags' in inst:
-                local_names[inst['PrivateIpAddress']] = ''.join([x['Value'] for x in inst['Tags'] if x['Key'] == 'Name'])
+                local_names[inst['PrivateIpAddress']] = ''.join([x['Value'] for x in inst['Tags'] if x['Key'] == 'Name']) + '/' + inst.get('PublicIpAddress', '')
 
     logging.info('%s: Got {} interfaces and {} instances'.format(len(interfaces), instance_count), account_id)
 
@@ -133,12 +144,15 @@ def get_connections(account_id, region, connections=None):
         if record.action == 'ACCEPT':
             record_count += 1
             src = ipaddress.ip_address(record.srcaddr)
-            if record.interface_id in interfaces and src not in STUPS_CIDR:
+            if record.interface_id in interfaces and not src.is_private:
                 name = NAMES.get(record.srcaddr, record.srcaddr)
                 dest = interfaces.get(record.interface_id, {}).get('Description')
                 if not dest or dest.startswith('Primary'):
                     dest = NAMES.get(record.dstaddr, local_names.get(record.dstaddr, record.dstaddr))
-                if 'NAT' not in dest and ('Odd' not in dest or record.dstport == 22):
+                elif dest.startswith('ELB'):
+                    words = dest.split()
+                    dest = lb_dns_names.get(words[-1], dest)
+                if 'NAT' not in dest and 'Odd' not in dest:
                     conn = (name, dest, record.dstport)
                     if conn not in connections:
                         new_connections += 1

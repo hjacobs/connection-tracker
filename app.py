@@ -75,6 +75,21 @@ def get_addresses():
     return {k: v for k, v in scan.NAMES.items() if not q or q in v}
 
 
+def get_endpoints():
+    res = {}
+    for key, counter in scan.CONNECTIONS.items():
+        res['/'.join(key)] = get_endpoints_by_account(key[0], key[1])
+    return res
+
+def get_endpoints_by_account(account_id, region):
+    endpoints = set()
+    for conn, count in scan.CONNECTIONS.get((account_id, region), {}).items():
+        target = conn[1]
+        port = conn[-1]
+        endpoints.add((target, port))
+    return list(endpoints)
+
+
 def get_time(v):
     if v:
         return v.isoformat('T') + 'Z'
@@ -100,6 +115,8 @@ def get_connections_by_account(account_id, region):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
+
+    logging.getLogger('botocore.vendored.requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
     # the following line is only needed for OAuth support
     api_args = {'tokeninfo_url': os.environ.get('HTTP_TOKENINFO_URL')}
     app = connexion.App(__name__, port=8080, debug=True, server='gevent')
