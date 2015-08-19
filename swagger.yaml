@@ -14,9 +14,21 @@ paths:
   /health:
     get:
       operationId: app.get_health
+      security: []
       responses:
         200:
           description: app is healthy
+  /addresses:
+    get:
+      tags: [Connections]
+      operationId: app.get_addresses
+      parameters:
+        - name: q
+          in: query
+          type: string
+      responses:
+        200:
+          description: res
   /accounts:
     get:
       tags: [Connections]

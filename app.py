@@ -6,7 +6,7 @@ gevent.monkey.patch_all()
 import botocore
 import collections
 import connexion
-import datetime
+import flask
 import logging
 import os
 import requests
@@ -59,7 +59,7 @@ class BackgroundThread(threading.Thread):
         scan.update_addresses()
         account_ids = collections.defaultdict(list)
         for acc in scan.ACCOUNTS:
-            account_ids[hash(acc) % 64].append(acc)
+            account_ids[hash(acc) % 16].append(acc)
 
         for ids in account_ids.values():
             thread = BackgroundAccountThread(ids)
@@ -70,8 +70,18 @@ def get_health():
     return 'OK'
 
 
+def get_addresses():
+    q = flask.request.args.get('q')
+    return {k: v for k, v in scan.NAMES.items() if not q or q in v}
+
+
+def get_time(v):
+    if v:
+        return v.isoformat('T') + 'Z'
+
+
 def get_accounts():
-    return scan.ACCOUNTS
+    return {k: {'name': v['name'], 'last_update': get_time(scan.LAST_TIMES.get(k))} for k, v in scan.ACCOUNTS.items()}
 
 
 def get_connections():
@@ -82,7 +92,6 @@ def get_connections():
 
 
 def get_connections_by_account(account_id, region):
-    scan.REQUESTED_ACCOUNTS.add((account_id, region))
     res = []
     for conn, count in scan.CONNECTIONS.get((account_id, region), collections.Counter()).most_common():
         res.append(list(conn) + [count])
