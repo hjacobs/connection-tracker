@@ -7,7 +7,6 @@ import botocore
 import collections
 import connexion
 import datetime
-import flask
 import logging
 import os
 import requests
@@ -15,8 +14,6 @@ import scan
 import threading
 import time
 import tokens
-
-from connexion import NoContent
 
 tokens.manage('tok', ['uid'])
 
@@ -26,6 +23,7 @@ _session = requests.Session()
 _session.mount('http://', adapter)
 _session.mount('https://', adapter)
 requests = _session
+
 
 class BackgroundAccountThread(threading.Thread):
     def __init__(self, account_ids):
@@ -48,6 +46,7 @@ class BackgroundAccountThread(threading.Thread):
             except:
                 logging.exception('Failed to update')
             time.sleep(30)
+
 
 class BackgroundThread(threading.Thread):
     def __init__(self):

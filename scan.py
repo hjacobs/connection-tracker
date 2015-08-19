@@ -137,7 +137,6 @@ def get_connections(account_id, region, connections=None):
             record_count += 1
             src = ipaddress.ip_address(record.srcaddr)
             if record.interface_id in interfaces and src not in STUPS_CIDR:
-                dst = ipaddress.ip_address(record.dstaddr)
                 name = NAMES.get(record.srcaddr, record.srcaddr)
                 dest = interfaces.get(record.interface_id, {}).get('Description')
                 if not dest or dest.startswith('Primary'):
