@@ -13,7 +13,9 @@ security:
 paths:
   /health:
     get:
+      tags: [System]
       operationId: app.get_health
+      summary: Healthcheck endpoint
       security: []
       responses:
         200:
@@ -22,17 +24,22 @@ paths:
     get:
       tags: [Connections]
       operationId: app.get_addresses
+      summary: Get IP addresses and their label
       parameters:
         - name: q
           in: query
           type: string
+          description: Filter by arbitrary substring
       responses:
         200:
           description: res
+          schema:
+            type: object
   /endpoints:
     get:
       tags: [Connections]
       operationId: app.get_endpoints
+      summary: Get all public endpoints
       responses:
         200:
           description: res
@@ -56,9 +63,12 @@ paths:
     get:
       tags: [Connections]
       operationId: app.get_accounts
+      summary: Get all AWS accounts, their name and update time
       responses:
         200:
-          description: res
+          description: List of accounts
+          schema:
+            type: object
   /connections:
     get:
       tags: [Connections]
@@ -70,6 +80,7 @@ paths:
     get:
       tags: [Connections]
       operationId: app.get_connections_by_account
+      summary: Get public inbound connections for a specific account and region
       parameters:
         - name: account_id
           in: path

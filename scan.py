@@ -96,6 +96,7 @@ def get_connections(account_id, region, connections=None):
 
     ec2_client = session.client('ec2')
     elb = session.client('elb')
+    rds = session.client('rds')
 
     instance_ids = []
     interfaces = {}
@@ -111,7 +112,6 @@ def get_connections(account_id, region, connections=None):
             if descr.startswith('ELB'):
                 words = descr.split()
                 lb_names.append(words[-1])
-
         if 'Attachment' in iface and 'InstanceId' in iface['Attachment']:
             instance_ids.append(iface['Attachment']['InstanceId'])
 
@@ -120,6 +120,18 @@ def get_connections(account_id, region, connections=None):
     for lb in res['LoadBalancerDescriptions']:
         lb_dns_names[lb['LoadBalancerName']] = lb['DNSName']
 
+    res = rds.describe_db_instances()
+    for db in res['DBInstances']:
+        if db['PubliclyAccessible']:
+            host, port = (db['Endpoint']['Address'], db['Endpoint']['Port'])
+            try:
+                ai = socket.getaddrinfo(host, port, family=socket.AF_INET, socktype=socket.SOCK_STREAM)
+            except Exception as e:
+                print(e)
+                ai = []
+            for _, _, _, _, ip_port in ai:
+                ip, _ = ip_port
+                NAMES[ip] = host
 
     local_names = {}
     instance_count = 0
@@ -152,6 +164,11 @@ def get_connections(account_id, region, connections=None):
                 elif dest.startswith('ELB'):
                     words = dest.split()
                     dest = lb_dns_names.get(words[-1], dest)
+                elif dest.startswith('RDS'):
+                    public_ip = interfaces.get(record.interface_id, {}).get('Association', {}).get('PublicIp', '')
+                    dest = NAMES.get(public_ip, 'RDS/' + public_ip)
+                elif dest:
+                    dest += '/' + interfaces.get(record.interface_id, {}).get('Association', {}).get('PublicIp', '')
                 if 'NAT' not in dest and 'Odd' not in dest:
                     conn = (name, dest, record.dstport)
                     if conn not in connections:
