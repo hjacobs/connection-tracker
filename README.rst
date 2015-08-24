@@ -31,6 +31,7 @@ Examples
 Some example JSON results (from service running on localhost port 8080):
 
 ``GET /accounts``
+
 .. code-block:: json
 
     {
@@ -46,6 +47,7 @@ Some example JSON results (from service running on localhost port 8080):
 
 
 ``GET /connections``
+
 .. code-block:: json
 
     {
