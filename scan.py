@@ -7,6 +7,7 @@ import ipaddress
 import netaddr
 import logging
 import os
+import re
 import requests
 import socket
 import tokens
@@ -21,6 +22,7 @@ ACCOUNT_CONNECTIONS = collections.defaultdict(set)
 LAST_TIMES = {}
 
 AWS_IPS = netaddr.IPSet()
+AWS_S3_DOMAIN_PATTERN = re.compile('^s3.*amazonaws.com$')
 
 
 def get_account_info(account: dict):
@@ -30,7 +32,8 @@ def get_account_info(account: dict):
 
 
 def update_accounts():
-    r = requests.get(os.environ.get('HTTP_TEAM_SERVICE_URL') + '/api/accounts/aws', headers={'Authorization': 'Bearer {}'.format(tokens.get('tok'))})
+    r = requests.get(os.environ.get('HTTP_TEAM_SERVICE_URL') + '/api/accounts/aws',
+                     headers={'Authorization': 'Bearer {}'.format(tokens.get('tok'))})
     ACCOUNTS.update({a['id']: get_account_info(a) for a in r.json()})
 
 
@@ -110,9 +113,12 @@ def get_name(ip: str):
             NAMES[ip] = '{}/{}'.format(info[0], ip)
         except socket.herror as e:
             # ignore "unknown host"
-            if e.errno != 1:
+            if e.errno == 1:
+                # do not attempt to resolv this IP again
+                NAMES[ip] = None
+            else:
                 logging.exception('Could not resolve %s', ip)
-    return NAMES.get(ip, ip)
+    return NAMES.get(ip) or ip
 
 
 def get_connections(account_id, region, connections=None):
@@ -170,9 +176,11 @@ def get_connections(account_id, region, connections=None):
         for inst in reservation['Instances']:
             instance_count += 1
             if 'PrivateIpAddress' in inst and 'Tags' in inst:
-                local_names[inst['PrivateIpAddress']] = ''.join([x['Value'] for x in inst['Tags'] if x['Key'] == 'Name']) + '/' + inst.get('PublicIpAddress', '')
+                name = ''.join([x['Value'] for x in inst['Tags'] if x['Key'] == 'Name'])
+                local_names[inst['PrivateIpAddress']] = '/'.join((name, inst.get('PublicIpAddress', '')))
 
-    logging.info('%s: Got {} interfaces, {} load balancers and {} instances'.format(len(interfaces), len(lb_dns_names), instance_count), account_id)
+    logging.info('%s: Got {} interfaces, {} load balancers and {} instances'.format(
+                 len(interfaces), len(lb_dns_names), instance_count), account_id)
 
     connections = collections.Counter() if connections is None else connections
     now = datetime.datetime.utcnow()
@@ -189,11 +197,13 @@ def get_connections(account_id, region, connections=None):
             # only look at packets received at public interfaces
             if record.interface_id in interfaces and not src.is_private:
                 name = get_name(record.srcaddr)
-                if record.srcaddr in AWS_IPS:
-                    print(name, record.srcaddr)
                 dest = interfaces.get(record.interface_id, {}).get('Description')
                 if not dest or dest.startswith('Primary'):
                     # EC2 instance
+                    if record.srcaddr in AWS_IPS and AWS_S3_DOMAIN_PATTERN.match(name.split('/')[0]):
+                        # ignore S3 public IPs
+                        # (most probably packets from S3 to public EC2)
+                        continue
                     dest = local_names.get(record.dstaddr, record.dstaddr)
                 elif dest.startswith('ELB'):
                     # ELB
