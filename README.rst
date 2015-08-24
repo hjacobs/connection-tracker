@@ -66,3 +66,12 @@ Some example JSON results (from service running on localhost port 8080):
             ]
         ]
     }
+
+The connections JSON will return a list of connection tuples for each AWS account containing:
+
+* source name (prefixed with account ID and region for known VPCs)
+* destination name (e.g. ELB or RDS DNS name)
+* destination TCP port
+* counter (number of matching records from VPC Flow Logs)
+
+
