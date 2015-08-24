@@ -24,3 +24,43 @@ Features
 * Resolve DNS names for ELBs, public EC2 instances and RDS clusters
 * Update simple internal dict with counter values
 * Provide HTTP interface to retrieve inbound connections, endpoints and resolved addresses
+
+Examples
+========
+
+Some example JSON results (from service running on localhost port 8080):
+
+``GET /accounts``
+.. code-block:: json
+
+    {
+        "123456789123": {
+            "last_update": "2015-08-24T16:33:01.864301Z",
+            "name": "myaccount"
+        },
+        "987654321001": {
+            "last_update": "2015-08-24T16:37:09.909320Z",
+            "name": "foobar"
+        },
+    }
+
+
+``GET /connections``
+.. code-block:: json
+
+    {
+        "123456789123/eu-west-1": [
+            [
+                "987654321001/eu-west-1/nat-eu-west-1b.foobar.example.org",
+                "myapp-1-123.eu-west-1.elb.amazonaws.com",
+                443,
+                2
+            ],
+            [
+                "987654321001/eu-west-1/nat-eu-west-1a.foobar.example.org",
+                "hello-world-2-456.eu-west-1.elb.amazonaws.com",
+                443,
+                1
+            ]
+        ]
+    }
