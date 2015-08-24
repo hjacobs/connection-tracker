@@ -34,7 +34,7 @@ class BackgroundAccountThread(threading.Thread):
         while True:
             try:
                 for acc in self.account_ids:
-                    for region in ['eu-west-1']:
+                    for region in os.getenv('REGIONS').split(','):
                         for i in range(3):
                             try:
                                 scan.update_connections(acc, region)
@@ -81,6 +81,7 @@ def get_endpoints():
         res['/'.join(key)] = get_endpoints_by_account(key[0], key[1])
     return res
 
+
 def get_endpoints_by_account(account_id, region):
     endpoints = set()
     for conn, count in scan.CONNECTIONS.get((account_id, region), {}).items():
@@ -97,6 +98,13 @@ def get_time(v):
 
 def get_accounts():
     return {k: {'name': v['name'], 'last_update': get_time(scan.LAST_TIMES.get(k))} for k, v in scan.ACCOUNTS.items()}
+
+
+def get_account_connections():
+    res = {}
+    for key, val in scan.ACCOUNT_CONNECTIONS.items():
+        res['/'.join(key)] = list(val)
+    return res
 
 
 def get_connections():

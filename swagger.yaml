@@ -69,6 +69,13 @@ paths:
           description: List of accounts
           schema:
             type: object
+  /account-connections:
+    get:
+      tags: [Connections]
+      operationId: app.get_account_connections
+      responses:
+        200:
+          description: res
   /connections:
     get:
       tags: [Connections]
