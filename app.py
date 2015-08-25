@@ -72,20 +72,24 @@ def get_health():
 
 def get_addresses():
     q = flask.request.args.get('q')
-    return {k: v for k, v in scan.NAMES.items() if not q or q in v}
+    return {k: v for k, v in scan.NAMES.items() if not q or (v and q in v)}
 
 
-def get_endpoints():
+def get_endpoints(date=None):
+    if not date:
+        date = flask.request.args.get('date')
     res = {}
     for account_id, data in scan.ACCOUNTS.items():
         for region in data['regions']:
-            res['/'.join((account_id, region))] = get_endpoints_by_account(account_id, region)
+            res['/'.join((account_id, region))] = get_endpoints_by_account(account_id, region, date)
     return res
 
 
-def get_endpoints_by_account(account_id, region):
+def get_endpoints_by_account(account_id, region, date=None):
+    if not date:
+        date = flask.request.args.get('date')
     endpoints = set()
-    for row in get_connections_by_account(account_id, region):
+    for row in get_connections_by_account(account_id, region, date):
         endpoints.add((row['dest'], row['dest_port']))
     return list(endpoints)
 
@@ -99,9 +103,11 @@ def get_accounts():
     return {k: {'name': v['name'], 'last_update': get_time(scan.LAST_TIMES.get(k))} for k, v in scan.ACCOUNTS.items()}
 
 
-def get_account_connections():
+def get_account_connections(date=None):
+    if not date:
+        date = flask.request.args.get('date')
     res = {}
-    for key, connections in get_connections().items():
+    for key, connections in get_connections(date).items():
         counter = collections.Counter()
         for conn in connections:
             parts = conn['source'].split('/')
@@ -111,18 +117,21 @@ def get_account_connections():
     return res
 
 
-def get_connections():
+def get_connections(date=None):
+    if not date:
+        date = flask.request.args.get('date')
     res = {}
     for account_id, data in scan.ACCOUNTS.items():
         for region in data['regions']:
-            res['/'.join((account_id, region))] = get_connections_by_account(account_id, region)
+            res['/'.join((account_id, region))] = get_connections_by_account(account_id, region, date)
     return res
 
 
-def get_connections_by_account(account_id, region):
+def get_connections_by_account(account_id, region, date=None):
     res = []
-    day = None
-    for conn, score in scan.get_stored_connections(account_id, region, day):
+    if not date:
+        date = flask.request.args.get('date')
+    for conn, score in scan.get_stored_connections(account_id, region, date):
         src, dst = conn.split('->', 1)
         dst, dst_port = dst.rsplit(':', 1)
         dst_port = int(dst_port)

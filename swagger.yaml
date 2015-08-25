@@ -40,6 +40,8 @@ paths:
       tags: [Connections]
       operationId: app.get_endpoints
       summary: Get all public endpoints
+      parameters:
+        - $ref: '#/parameters/date'
       responses:
         200:
           description: res
@@ -48,14 +50,9 @@ paths:
       tags: [Connections]
       operationId: app.get_endpoints_by_account
       parameters:
-        - name: account_id
-          in: path
-          required: true
-          type: string
-        - name: region
-          in: path
-          required: true
-          type: string
+        - $ref: '#/parameters/account_id'
+        - $ref: '#/parameters/region'
+        - $ref: '#/parameters/date'
       responses:
         200:
           description: res
@@ -73,6 +70,8 @@ paths:
     get:
       tags: [Connections]
       operationId: app.get_account_connections
+      parameters:
+        - $ref: '#/parameters/date'
       responses:
         200:
           description: res
@@ -80,6 +79,8 @@ paths:
     get:
       tags: [Connections]
       operationId: app.get_connections
+      parameters:
+        - $ref: '#/parameters/date'
       responses:
         200:
           description: res
@@ -89,18 +90,35 @@ paths:
       operationId: app.get_connections_by_account
       summary: Get public inbound connections for a specific account and region
       parameters:
-        - name: account_id
-          in: path
-          required: true
-          type: string
-        - name: region
-          in: path
-          required: true
-          type: string
+        - $ref: '#/parameters/account_id'
+        - $ref: '#/parameters/region'
+        - $ref: '#/parameters/date'
       responses:
         200:
           description: res
 
+
+parameters:
+  account_id:
+    name: account_id
+    description: AWS account ID
+    in: path
+    required: true
+    type: string
+  region:
+    name: region
+    description: AWS region ID
+    example: eu-west-1
+    in: path
+    required: true
+    type: string
+  date:
+    name: date
+    description: Date to retrieve data for
+    in: query
+    example: "2015-08-25"
+    format: date
+    type: string
 
 securityDefinitions:
   oauth2:
