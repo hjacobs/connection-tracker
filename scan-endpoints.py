@@ -2,7 +2,6 @@
 import click
 import logging
 import requests
-import sys
 import zign.api
 
 from clickclick import secho
