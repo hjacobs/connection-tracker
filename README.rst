@@ -82,4 +82,5 @@ Helpers
 
 .. code-block:: bash
 
+    $ ./list-connections.py https://connection-tracker.example.org
     $ ./scan-endpoints.py https://connection-tracker.example.org
