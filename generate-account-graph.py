@@ -20,7 +20,7 @@ def get_label(account_region):
     name = accounts.get(parts[0], {}).get('name', parts[0])
     return name
 
-r = requests.get(url + '/account-connections', headers={'Authorization': 'Bearer {}'.format(access_token)})
+r = requests.get(url + '/account-connections', headers={'Authorization': 'Bearer {}'.format(access_token)}, timeout=180)
 data = r.json()
 max_score = 0
 for dest, sources in data.items():
