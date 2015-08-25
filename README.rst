@@ -52,26 +52,26 @@ Some example JSON results (from service running on localhost port 8080):
 
     {
         "123456789123/eu-west-1": [
-            [
-                "987654321001/eu-west-1/nat-eu-west-1b.foobar.example.org",
-                "myapp-1-123.eu-west-1.elb.amazonaws.com",
-                443,
-                2
-            ],
-            [
-                "987654321001/eu-west-1/nat-eu-west-1a.foobar.example.org",
-                "hello-world-2-456.eu-west-1.elb.amazonaws.com",
-                443,
-                1
-            ]
+            {
+                "source": "987654321001/eu-west-1/nat-eu-west-1b.foobar.example.org",
+                "dest": "myapp-1-123.eu-west-1.elb.amazonaws.com",
+                "dest_port": 443,
+                "score": 2
+            },
+            {
+                "source": "987654321001/eu-west-1/nat-eu-west-1a.foobar.example.org",
+                "dest": "hello-world-2-456.eu-west-1.elb.amazonaws.com",
+                "dest_port": 443,
+                "score": 1
+            }
         ]
     }
 
-The connections JSON will return a list of connection tuples for each AWS account containing:
+The connections JSON will return a list of dictionaries for each AWS account containing:
 
 * source name (prefixed with account ID and region for known VPCs)
 * destination name (e.g. ELB or RDS DNS name)
 * destination TCP port
-* counter (number of matching records from VPC Flow Logs)
+* score/counter (number of matching records from VPC Flow Logs)
 
 
