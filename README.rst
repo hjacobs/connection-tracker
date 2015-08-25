@@ -15,6 +15,7 @@ This app can be deployed in one account and will read the VPC Flow Logs of all c
     $ export DOMAIN={account_name}.example.org
     $ export REGIONS=eu-west-1
     $ export NETWORKS=my_office=123.123.123.0/24,some_nat=456.789.1.1/32
+    $ export REDIS_HOST=my-redis-host.example.org
     $ ./app.py
 
 Features
@@ -24,6 +25,7 @@ Features
 * Resolve DNS names for ELBs, public EC2 instances and RDS clusters
 * Update simple internal dict with counter values
 * Provide HTTP interface to retrieve inbound connections, endpoints and resolved addresses
+* Stores connection information in Redis
 
 Examples
 ========
@@ -75,3 +77,9 @@ The connections JSON will return a list of dictionaries for each AWS account con
 * score/counter (number of matching records from VPC Flow Logs)
 
 
+Helpers
+=======
+
+.. code-block:: bash
+
+    $ ./scan-endpoints.py https://connection-tracker.example.org

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
+import click
 import logging
 import requests
 import sys
 import zign.api
 
-from clickclick import ok, warning
+from clickclick import secho
 from queue import Queue
 from threading import Thread
 
@@ -56,7 +57,7 @@ class ThreadPool:
 SSL_PORTS = set([443, 8443])
 
 
-def check_endpoint(account, endpoint, port):
+def check_endpoint(account, endpoint, port, show_public_only):
     if port in SSL_PORTS:
         scheme = 'https'
     else:
@@ -64,27 +65,39 @@ def check_endpoint(account, endpoint, port):
     url = '{}://{}:{}/'.format(scheme, endpoint.split('/')[-1], port)
     try:
         r = requests.get(url, timeout=5, verify=False)
+        do_print = True
         if r.status_code == 401:
-            ok('{} {} {} {}'.format(account, endpoint, port, r.status_code))
+            style = {'fg': 'green', 'bold': True}
+            if show_public_only:
+                do_print = False
         else:
-            warning('{} {} {} {}'.format(account, endpoint, port, r.status_code))
+            style = {'fg': 'yellow', 'bold': True}
+        if do_print:
+            secho('{} {} {} {}'.format(account, url, r.status_code, r.text.strip().replace('\n', ' ')[:40]), **style)
     except Exception as e:
-        print(account, endpoint, port, str(e))
+        if not show_public_only:
+            secho('{} {} {}'.format(account, url, str(e)[:40]))
 
 requests.packages.urllib3.disable_warnings()
 
-url = sys.argv[1]
 
-token = zign.api.get_existing_token('test')
-access_token = token['access_token']
+@click.command()
+@click.argument('url')
+@click.option('--show-public-only', is_flag=True)
+def scan_endpoints(url, show_public_only):
+    token = zign.api.get_existing_token('test')
+    access_token = token['access_token']
 
-r = requests.get(url + '/endpoints', headers={'Authorization': 'Bearer {}'.format(access_token)})
-data = r.json()
+    r = requests.get(url + '/endpoints', headers={'Authorization': 'Bearer {}'.format(access_token)})
+    data = r.json()
 
-pool = ThreadPool(32)
+    pool = ThreadPool(32)
 
-for account, public_endpoints in sorted(data.items()):
-    for endpoint, port in public_endpoints:
-        pool.add_task(check_endpoint, account, endpoint, port)
+    for account, public_endpoints in sorted(data.items()):
+        for endpoint, port in public_endpoints:
+            pool.add_task(check_endpoint, account, endpoint, port, show_public_only)
 
-pool.wait_completion()
+    pool.wait_completion()
+
+if __name__ == '__main__':
+    scan_endpoints()
