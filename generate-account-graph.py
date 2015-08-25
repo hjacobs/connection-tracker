@@ -25,8 +25,9 @@ data = r.json()
 graph = Digraph(comment='Account Graph', engine='circo', format='svg')
 for dest, sources in data.items():
     graph.node(dest, label=get_label(dest), style='filled')
-    for source in sources:
+    for row in sources:
+        source = row['source']
         graph.node(source, label=get_label(source), style='filled')
-        graph.edge(source, dest)
+        graph.edge(source, dest, weight=str(row['score']))
 
 graph.render('account-graph')
