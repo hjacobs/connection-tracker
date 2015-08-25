@@ -4,6 +4,7 @@ import collections
 import datetime
 import boto3
 import ipaddress
+import json
 import netaddr
 import logging
 import os
@@ -12,17 +13,19 @@ import requests
 import socket
 import tokens
 from flowlogs_reader import FlowLogsReader
+from redis import StrictRedis
 
 AZ_NAMES_BY_REGION = {}
 NAMES = {}
 ACCOUNTS = {}
 CONNECTIONS = {}
-ACCOUNT_CONNECTIONS = collections.defaultdict(set)
 
 LAST_TIMES = {}
 
 AWS_IPS = netaddr.IPSet()
 AWS_S3_DOMAIN_PATTERN = re.compile('^s3.*amazonaws.com$')
+
+redis = StrictRedis(host=os.getenv('REDIS_HOST') or 'localhost', port=int(os.getenv('REDIS_PORT') or '6379'))
 
 
 def get_account_info(account: dict):
@@ -34,6 +37,8 @@ def get_account_info(account: dict):
 def update_accounts():
     r = requests.get(os.environ.get('HTTP_TEAM_SERVICE_URL') + '/api/accounts/aws',
                      headers={'Authorization': 'Bearer {}'.format(tokens.get('tok'))})
+    for a in r.json():
+        redis.set('accounts:' + a['id'], json.dumps(get_account_info(a)))
     ACCOUNTS.update({a['id']: get_account_info(a) for a in r.json()})
 
 
@@ -86,14 +91,31 @@ def get_addresses(accounts: dict):
     return addresses
 
 
+def get_key(account_id, region, day=None):
+    if not day:
+        now = datetime.datetime.utcnow()
+        day = now.isoformat(' ').split()[0]
+    key = 'connections:inbound:{}:{}:{}'.format(account_id, region, day)
+    return key
+
+
+def get_stored_connections(account_id, region, day=None):
+    key = get_key(account_id, region, day)
+    values = redis.zrange(key, 0, -1, withscores=True, desc=True)
+    return [(k.decode('utf-8'), score) for k, score in values]
+
+
 def update_connections(account_id, region):
-    conn = CONNECTIONS.get((account_id, region), collections.Counter())
-    CONNECTIONS[(account_id, region)] = conn
-    get_connections(account_id, region, conn)
-    for c in conn:
-        parts = c[0].split('/')
-        if len(parts) >= 3:
-            ACCOUNT_CONNECTIONS[(account_id, region)].add('/'.join(parts[:2]))
+    old_vals = get_stored_connections(account_id, region)
+    conn = get_connections(account_id, region)
+    d = dict(old_vals)
+    for c, val in conn.items():
+        k = '{}->{}:{}'.format(c[0], c[1], c[2])
+        old_val = d.get(k, 0)
+        d[k] = old_val + val
+    if d:
+        key = get_key(account_id, region)
+        redis.zadd(key, **d)
 
 
 def get_lb_dns_names(session, lb_names):
@@ -161,8 +183,7 @@ def get_connections(account_id, region, connections=None):
             host, port = (db['Endpoint']['Address'], db['Endpoint']['Port'])
             try:
                 ai = socket.getaddrinfo(host, port, family=socket.AF_INET, socktype=socket.SOCK_STREAM)
-            except Exception as e:
-                print(e)
+            except:
                 ai = []
             for _, _, _, _, ip_port in ai:
                 ip, _ = ip_port

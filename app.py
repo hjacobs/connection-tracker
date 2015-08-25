@@ -77,17 +77,16 @@ def get_addresses():
 
 def get_endpoints():
     res = {}
-    for key, counter in scan.CONNECTIONS.items():
-        res['/'.join(key)] = get_endpoints_by_account(key[0], key[1])
+    for account_id, data in scan.ACCOUNTS.items():
+        for region in data['regions']:
+            res['/'.join((account_id, region))] = get_endpoints_by_account(account_id, region)
     return res
 
 
 def get_endpoints_by_account(account_id, region):
     endpoints = set()
-    for conn, count in scan.CONNECTIONS.get((account_id, region), {}).items():
-        target = conn[1]
-        port = conn[-1]
-        endpoints.add((target, port))
+    for row in get_connections_by_account(account_id, region):
+        endpoints.add((row['dest'], row['dest_port']))
     return list(endpoints)
 
 
@@ -102,22 +101,32 @@ def get_accounts():
 
 def get_account_connections():
     res = {}
-    for key, val in scan.ACCOUNT_CONNECTIONS.items():
-        res['/'.join(key)] = list(val)
+    for key, connections in get_connections().items():
+        counter = collections.Counter()
+        for conn in connections:
+            parts = conn['source'].split('/')
+            if len(parts) >= 3:
+                counter['/'.join(parts[:2])] += conn['score']
+        res[key] = [{'source': k, 'score': v} for k, v in counter.items()]
     return res
 
 
 def get_connections():
     res = {}
-    for key, val in scan.CONNECTIONS.items():
-        res['/'.join(key)] = get_connections_by_account(key[0], key[1])
+    for account_id, data in scan.ACCOUNTS.items():
+        for region in data['regions']:
+            res['/'.join((account_id, region))] = get_connections_by_account(account_id, region)
     return res
 
 
 def get_connections_by_account(account_id, region):
     res = []
-    for conn, count in scan.CONNECTIONS.get((account_id, region), collections.Counter()).most_common():
-        res.append(list(conn) + [count])
+    day = None
+    for conn, score in scan.get_stored_connections(account_id, region, day):
+        src, dst = conn.split('->', 1)
+        dst, dst_port = dst.rsplit(':', 1)
+        dst_port = int(dst_port)
+        res.append({'source': src, 'dest': dst, 'dest_port': dst_port, 'score': score})
     return res
 
 

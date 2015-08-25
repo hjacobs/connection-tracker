@@ -4,3 +4,4 @@ gevent>=1.1b1
 flowlogs_reader
 stups-tokens
 netaddr
+redis

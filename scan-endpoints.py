@@ -88,4 +88,3 @@ for account, public_endpoints in sorted(data.items()):
         pool.add_task(check_endpoint, account, endpoint, port)
 
 pool.wait_completion()
-
