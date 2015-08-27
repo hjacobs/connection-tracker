@@ -82,5 +82,8 @@ Helpers
 
 .. code-block:: bash
 
+    $ zign token -n test
     $ ./list-connections.py https://connection-tracker.example.org
+    $ ./list-connections.py https://connection-tracker.example.org --suspicious
     $ ./scan-endpoints.py https://connection-tracker.example.org
+    $ ./generate-account-graph.py https://connection-tracker.example.org --include mynetwork,myoffice
