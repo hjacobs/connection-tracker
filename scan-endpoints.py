@@ -93,8 +93,8 @@ def scan_endpoints(url, show_public_only):
     pool = ThreadPool(32)
 
     for account, public_endpoints in sorted(data.items()):
-        for endpoint, port in public_endpoints:
-            pool.add_task(check_endpoint, account, endpoint, port, show_public_only)
+        for endpoint in public_endpoints:
+            pool.add_task(check_endpoint, account, endpoint['dest'], endpoint['dest_port'], show_public_only)
 
     pool.wait_completion()
 
