@@ -32,7 +32,7 @@ paths:
           description: Filter by arbitrary substring
       responses:
         200:
-          description: res
+          description: Mapping from IP to name
           schema:
             type: object
   /endpoints:
@@ -44,7 +44,7 @@ paths:
         - $ref: '#/parameters/date'
       responses:
         200:
-          description: res
+          description: Map of account ID/region to list of endpoints
   /endpoints/{account_id}/{region}:
     get:
       tags: [Connections]
@@ -55,7 +55,16 @@ paths:
         - $ref: '#/parameters/date'
       responses:
         200:
-          description: res
+          description: List of endpoints
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                dest:
+                  type: string
+                dest_port:
+                  type: integer
   /accounts:
     get:
       tags: [Connections]
@@ -72,6 +81,7 @@ paths:
       operationId: app.get_account_connections
       parameters:
         - $ref: '#/parameters/date'
+        - $ref: '#/parameters/include'
       responses:
         200:
           description: res
@@ -95,7 +105,21 @@ paths:
         - $ref: '#/parameters/date'
       responses:
         200:
-          description: res
+          description: List of connections for this account/region
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                source:
+                  type: string
+                dest:
+                  type: string
+                dest_port:
+                  type: integer
+                score:
+                  type: float
+                  description: number of occurrences found in VPC Flow Logs
 
 
 parameters:
@@ -121,6 +145,11 @@ parameters:
     example: "2015-08-25"
     format: date
     type: string
+  include:
+    name: include
+    description: Comma separated list of additional sources to include
+    in: query
+    type: array
 
 securityDefinitions:
   oauth2:

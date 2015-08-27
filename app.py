@@ -53,10 +53,16 @@ class BackgroundThread(threading.Thread):
         threading.Thread.__init__(self, daemon=True)
 
     def run(self):
-        logging.info('Updating accounts..')
-        scan.update_accounts()
-        logging.info('Updating addresses..')
-        scan.update_addresses()
+        while True:
+            try:
+                logging.info('Updating accounts..')
+                scan.update_accounts()
+                logging.info('Updating addresses..')
+                scan.update_addresses()
+                break
+            except:
+                logging.exception('Failed to update accounts/addresses, retrying')
+                time.sleep(30)
         account_ids = collections.defaultdict(list)
         for acc in scan.ACCOUNTS:
             account_ids[hash(acc) % 16].append(acc)
@@ -91,7 +97,7 @@ def get_endpoints_by_account(account_id, region, date=None):
     endpoints = set()
     for row in get_connections_by_account(account_id, region, date):
         endpoints.add((row['dest'], row['dest_port']))
-    return list(endpoints)
+    return list([{'dest': e[0], 'dest_port': e[1]} for e in endpoints])
 
 
 def get_time(v):
@@ -106,13 +112,17 @@ def get_accounts():
 def get_account_connections(date=None):
     if not date:
         date = flask.request.args.get('date')
+    include = set(flask.request.args.get('include', '').split(','))
     res = {}
     for key, connections in get_connections(date).items():
         counter = collections.Counter()
         for conn in connections:
-            parts = conn['source'].split('/')
-            if len(parts) >= 3:
-                counter['/'.join(parts[:2])] += conn['score']
+            if include and conn['source'] in include:
+                counter[conn['source']] += conn['score']
+            else:
+                parts = conn['source'].split('/')
+                if len(parts) >= 3:
+                    counter['/'.join(parts[:2])] += conn['score']
         res[key] = [{'source': k, 'score': v} for k, v in counter.items()]
     return res
 
