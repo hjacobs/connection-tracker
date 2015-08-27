@@ -105,6 +105,7 @@ parameters:
     in: path
     required: true
     type: string
+    pattern: "^[0-9]+$"
   region:
     name: region
     description: AWS region ID
@@ -112,6 +113,7 @@ parameters:
     in: path
     required: true
     type: string
+    pattern: "^[a-z0-9-]+$"
   date:
     name: date
     description: Date to retrieve data for
