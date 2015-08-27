@@ -9,13 +9,13 @@ This app can be deployed in one account and will read the VPC Flow Logs of all c
 
 .. code-block:: bash
 
-    $ sudo pip3 install -r requirements.txt # install dependencies
-    $ export HTTP_TEAM_SERVICE_URL=https://teams.example.org
-    $ export OAUTH2_ACCESS_TOKENS=tok=$(zign tok -n test)
-    $ export DOMAIN={account_name}.example.org
-    $ export REGIONS=eu-west-1
-    $ export NETWORKS=my_office=123.123.123.0/24,some_nat=456.789.1.1/32
-    $ export REDIS_HOST=my-redis-host.example.org
+    $ sudo pip3 install -r requirements.txt                     # install Python dependencies
+    $ export HTTP_TEAM_SERVICE_URL=https://teams.example.org    # Team Service URL to return account IDs and names
+    $ export OAUTH2_ACCESS_TOKENS=tok=$(zign tok -n test)       # needed to query Team Service
+    $ export DOMAIN={account_name}.example.org                  # domain template for each AWS account
+    $ export REGIONS=eu-west-1                                  # regions to scan
+    $ export NETWORKS=my_office=1.2.3.0/24,some_nat=4.5.6.1/32  # optional named network IP ranges
+    $ export REDIS_HOST=my-redis-host.example.org               # Redis host to store connections in
     $ ./app.py
 
 Features
@@ -23,9 +23,26 @@ Features
 
 * Read deltas from multiple VPC Flow Logs (multiple AWS accounts) in "parallel" (using gevent greenlets)
 * Resolve DNS names for ELBs, public EC2 instances and RDS clusters
-* Update simple internal dict with counter values
+* Update Redis sorted sets with counter values
 * Provide HTTP interface to retrieve inbound connections, endpoints and resolved addresses
-* Stores connection information in Redis
+
+How it works
+============
+
+* Connect to Team Service and fetch list of AWS accounts (``/api/accounts/aws``)
+* Resolve NAT and "Odd" host (SSH jump host) IP addresses for all AWS accounts
+* Start 16 background threads to process VPC Flow Logs for each account and region
+* Find all public network interfaces per AWS account/region
+* Collect DNS names for all public ELB load balancers
+* Collect DNS names for all public RDS instances
+* Collect names of all public EC2 instances
+* Read VPC Flow Log records, for each record:
+
+  * Check whether it belongs to a public interface
+  * Check whether the source address is public
+  * Lookup source IP address (either known IP or reverse DNS lookup)
+  * Lookup destination address and replace with ELB, RDS or EC2 name
+  * Increment counter in Redis for source, destination and destination port
 
 Examples
 ========
@@ -87,3 +104,4 @@ Helpers
     $ ./list-connections.py https://connection-tracker.example.org --suspicious
     $ ./scan-endpoints.py https://connection-tracker.example.org
     $ ./generate-account-graph.py https://connection-tracker.example.org --include mynetwork,myoffice
+
