@@ -144,7 +144,7 @@ def get_name(ip: str):
 
 
 def get_connections(account_id, region, connections=None):
-    logging.info('Getting connections for {} {}..'.format(account_id, region))
+    logging.info('%s: Connecting to {}..'.format(region), account_id)
     sts = boto3.client('sts')
     response = sts.assume_role(RoleArn='arn:aws:iam::' + account_id + ':role/fullstop',
                                RoleSessionName='fullstop',
