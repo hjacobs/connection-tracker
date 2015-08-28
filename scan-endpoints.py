@@ -85,6 +85,10 @@ requests.packages.urllib3.disable_warnings()
 @click.option('--show-public-only', is_flag=True)
 def scan_endpoints(url, show_public_only):
     token = zign.api.get_existing_token('test')
+    if token is None:
+        print("Token 'test' expired")
+        exit(1)
+
     access_token = token['access_token']
 
     r = requests.get(url + '/endpoints', headers={'Authorization': 'Bearer {}'.format(access_token)})
