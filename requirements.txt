@@ -5,3 +5,4 @@ flowlogs_reader
 stups-tokens
 netaddr
 redis
+graphviz
