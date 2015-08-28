@@ -49,6 +49,7 @@ paths:
     get:
       tags: [Connections]
       operationId: app.get_endpoints_by_account
+      summary: Get all public endpoints for this AWS account/region
       parameters:
         - $ref: '#/parameters/account_id'
         - $ref: '#/parameters/region'
@@ -79,6 +80,7 @@ paths:
     get:
       tags: [Connections]
       operationId: app.get_account_connections
+      summary: Get connections between AWS accounts
       parameters:
         - $ref: '#/parameters/date'
         - $ref: '#/parameters/include'
