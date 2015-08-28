@@ -11,14 +11,19 @@ requests.packages.urllib3.disable_warnings()
 @click.command()
 @click.argument('url')
 @click.option('--suspicious', is_flag=True)
-def cli(url, suspicious):
+@click.option('--date')
+def cli(url, suspicious, date):
     token = zign.api.get_existing_token('test')
     access_token = token['access_token']
 
     r = requests.get(url + '/accounts', headers={'Authorization': 'Bearer {}'.format(access_token)})
     accounts = r.json()
 
-    r = requests.get(url + '/connections', headers={'Authorization': 'Bearer {}'.format(access_token)})
+    params = {}
+    if date:
+        params['date'] = date
+    r = requests.get(url + '/connections', headers={'Authorization': 'Bearer {}'.format(access_token)},
+                     params=params)
     data = r.json()
 
     rows = []
