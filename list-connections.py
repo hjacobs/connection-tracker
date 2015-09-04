@@ -21,6 +21,7 @@ def cli(url, suspicious, date):
     access_token = token['access_token']
 
     r = requests.get(url + '/accounts', headers={'Authorization': 'Bearer {}'.format(access_token)})
+    r.raise_for_status()
     accounts = r.json()
 
     params = {}
@@ -28,6 +29,7 @@ def cli(url, suspicious, date):
         params['date'] = date
     r = requests.get(url + '/connections', headers={'Authorization': 'Bearer {}'.format(access_token)},
                      params=params)
+    r.raise_for_status()
     data = r.json()
 
     rows = []
