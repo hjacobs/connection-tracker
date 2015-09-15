@@ -105,7 +105,7 @@ def get_connections_by_account(account_id, region, date=None):
 PARALLEL = 8
 
 
-def test(signum):
+def run_update(signum):
     if uwsgi.is_locked(signum):
         return
     uwsgi.lock(signum)
@@ -121,21 +121,22 @@ def test(signum):
                 logging.exception('Failed to update accounts/addresses, retrying')
                 time.sleep(30)
 
-        try:
-            for acc in scan.ACCOUNTS:
-                if hash(acc) % PARALLEL == signum:
-                    for region in os.getenv('REGIONS').split(','):
-                        for i in range(3):
-                            try:
-                                scan.update_connections(acc, region)
-                                break
-                            except botocore.exceptions.ClientError:
-                                logging.exception('Client error')
-                                # throttling
-                                time.sleep(60)
-        except:
-            logging.exception('Failed to update')
-            time.sleep(30)
+        for i in range(100):
+            try:
+                for acc in scan.ACCOUNTS:
+                    if hash(acc) % PARALLEL == signum:
+                        for region in os.getenv('REGIONS').split(','):
+                            for i in range(3):
+                                try:
+                                    scan.update_connections(acc, region)
+                                    break
+                                except botocore.exceptions.ClientError:
+                                    logging.exception('Client error')
+                                    # throttling
+                                    time.sleep(60)
+            except:
+                logging.exception('Failed to update')
+            time.sleep(60)
     finally:
         uwsgi.unlock(signum)
 
@@ -153,7 +154,7 @@ try:
     import uwsgi
     for i in range(0, 0 + PARALLEL):
         signum = i
-        uwsgi.register_signal(signum, "", test)
+        uwsgi.register_signal(signum, "", run_update)
         uwsgi.add_timer(signum, 10)
 except Exception as e:
     print(e)
