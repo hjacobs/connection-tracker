@@ -36,6 +36,7 @@ def get_account_info(account: dict):
 def update_accounts():
     r = requests.get(os.environ.get('HTTP_TEAM_SERVICE_URL') + '/api/accounts/aws',
                      headers={'Authorization': 'Bearer {}'.format(tokens.get('tok'))})
+    r.raise_for_status()
     for a in r.json():
         redis.set('accounts:' + a['id'], json.dumps(get_account_info(a)))
     ACCOUNTS.update({a['id']: get_account_info(a) for a in r.json()})
@@ -67,6 +68,7 @@ def get_addresses(accounts: dict):
                 addresses[str(ip)] = name
 
     r = requests.get('https://ip-ranges.amazonaws.com/ip-ranges.json')
+    r.raise_for_status()
     data = r.json()
     for prefix in data['prefixes']:
         AWS_IPS.add(prefix['ip_prefix'])
