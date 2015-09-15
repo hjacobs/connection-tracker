@@ -12,6 +12,7 @@ import re
 import requests
 import socket
 import tokens
+import botocore.exceptions
 from flowlogs_reader import FlowLogsReader
 from redis import StrictRedis
 
@@ -19,8 +20,6 @@ AZ_NAMES_BY_REGION = {}
 NAMES = {}
 ACCOUNTS = {}
 CONNECTIONS = {}
-
-LAST_TIMES = {}
 
 AWS_IPS = netaddr.IPSet()
 AWS_S3_DOMAIN_PATTERN = re.compile('^s3.*amazonaws.com$')
@@ -107,7 +106,12 @@ def get_stored_connections(account_id, region, day=None):
 
 def update_connections(account_id, region):
     old_vals = get_stored_connections(account_id, region)
-    conn = get_connections(account_id, region)
+    try:
+        conn = get_connections(account_id, region)
+    except botocore.exceptions.ClientError as e:
+        # just print a simple error, we expect some ResourceNotFound errors for accounts without VPC Flow Logs
+        logging.error('%s: AWS client error: %s', account_id, e)
+        return
     d = dict(old_vals)
     for c, val in conn.items():
         k = '{}->{}:{}'.format(c[0], c[1], c[2])
@@ -141,6 +145,13 @@ def get_name(ip: str):
             else:
                 logging.exception('Could not resolve %s', ip)
     return NAMES.get(ip) or ip
+
+
+def get_last_update(account_id, region):
+    time_key = 'accounts:{}:{}:last_update'.format(account_id, region)
+    last_update = redis.get(time_key)
+    if last_update:
+        return datetime.datetime.strptime(last_update.decode('utf-8'), '%Y-%m-%dT%H:%M:%S.%fZ')
 
 
 def get_connections(account_id, region, connections=None):
@@ -205,7 +216,10 @@ def get_connections(account_id, region, connections=None):
 
     connections = collections.Counter() if connections is None else connections
     now = datetime.datetime.utcnow()
-    start_time = LAST_TIMES.get(account_id, now - datetime.timedelta(minutes=10))
+    time_key = 'accounts:{}:{}:last_update'.format(account_id, region)
+    start_time = get_last_update(account_id, region)
+    if not start_time:
+        start_time = now - datetime.timedelta(minutes=10)
     reader = FlowLogsReader('vpc-flowgroup', region_name=region, start_time=start_time, end_time=now)
     reader.logs_client = session.client('logs')
     record_count = 0
@@ -242,7 +256,7 @@ def get_connections(account_id, region, connections=None):
                         new_connections += 1
                     connections[conn] += 1
     logging.info('%s: Got {} records and {} new connections'.format(record_count, new_connections), account_id)
-    LAST_TIMES[account_id] = now
+    redis.set(time_key, now.isoformat('T') + 'Z')
     return connections
 
 

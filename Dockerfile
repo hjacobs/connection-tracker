@@ -8,4 +8,4 @@ COPY scan.py /
 COPY swagger.yaml /
 
 WORKDIR /
-CMD /app.py
+CMD uwsgi --http :8080 -w app --master -p 16 --locks 8

@@ -16,7 +16,7 @@ This app can be deployed in one account and will read the VPC Flow Logs of all c
     $ export REGIONS=eu-west-1                                  # regions to scan
     $ export NETWORKS=my_office=1.2.3.0/24,some_nat=4.5.6.1/32  # optional named network IP ranges
     $ export REDIS_HOST=my-redis-host.example.org               # Redis host to store connections in
-    $ ./app.py
+    $ uwsgi --http :8080 -w app --master -p 16 --locks 8
 
 Features
 ========
