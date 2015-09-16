@@ -6,6 +6,8 @@ Hack to find public endpoints and connections from non-private IPs.
 
 This app can be deployed in one account and will read the VPC Flow Logs of all configured AWS accounts to find inbound connections (packets) to public endpoints (ELB, Elastic IPs, RDS, ..).
 
+Please note that the Connection Tracker is not a comprehensive security checker, it will only list information found via VPC Flow Logs!
+
 
 .. code-block:: bash
 
