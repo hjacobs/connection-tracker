@@ -105,3 +105,11 @@ Helpers
     $ ./scan-endpoints.py https://connection-tracker.example.org
     $ ./generate-account-graph.py https://connection-tracker.example.org --include mynetwork,myoffice
 
+You can generate a CSV (tab separated) report for the last seven days:
+
+.. code-block:: bash
+
+    $ zign token -n test
+    $ ./list-connections.py https://connection-tracker.example.org --suspicious --date-from "-7d" -o tsv > report.tsv
+
+

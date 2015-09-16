@@ -15,7 +15,7 @@ output_option = click.option('-o', '--output', type=click.Choice(['text', 'json'
 @click.command()
 @click.argument('url')
 @click.option('--suspicious', is_flag=True)
-@click.option('--date-from')
+@click.option('--date-from', help='Date from in ISO format or 7d')
 @click.option('--date-to')
 @output_option
 def cli(url, suspicious, date_from, date_to, output):
@@ -25,7 +25,11 @@ def cli(url, suspicious, date_from, date_to, output):
         exit(1)
 
     if date_from:
-        date_from = datetime.datetime.strptime(date_from, '%Y-%m-%d')
+        if date_from.endswith('d'):
+            days = int(date_from.lstrip('-').rstrip('d'))
+            date_from = datetime.datetime.utcnow() - datetime.timedelta(days=days)
+        else:
+            date_from = datetime.datetime.strptime(date_from, '%Y-%m-%d')
     else:
         date_from = datetime.datetime.utcnow()
 
