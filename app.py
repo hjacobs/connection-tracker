@@ -149,10 +149,8 @@ def run_update(signum):
 logging.basicConfig(level=logging.INFO)
 
 logging.getLogger('botocore.vendored.requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
-# the following line is only needed for OAuth support
-api_args = {'tokeninfo_url': os.environ.get('HTTP_TOKENINFO_URL')}
 app = connexion.App(__name__, port=8080)
-app.add_api('swagger.yaml', arguments=api_args)
+app.add_api('swagger.yaml')
 application = app.app
 
 try:

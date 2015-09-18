@@ -11,4 +11,5 @@ COPY scan.py /
 COPY swagger.yaml /
 
 WORKDIR /
-CMD uwsgi --http :8080 -w app --master -p 16 --locks 9 --enable-metrics --mule
+CMD uwsgi --http :8080 -w app --master -p 16 --locks 9 --enable-metrics --mule \
+    --logformat 'INFO:uwsgi.request: %(addr) "%(method) %(uri) %(proto)" %(status) %(size) "%(uagent)"'
