@@ -20,6 +20,14 @@ paths:
       responses:
         200:
           description: app is healthy
+  /metrics:
+    get:
+      tags: [System]
+      operationId: app.get_metrics
+      summary: Get request metrics
+      responses:
+        200:
+          description: Dropwizard metrics
   /addresses:
     get:
       tags: [Connections]

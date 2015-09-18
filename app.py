@@ -24,6 +24,11 @@ def get_health():
     return 'OK'
 
 
+def get_metrics():
+    import uwsgi_metrics
+    return uwsgi_metrics.view()
+
+
 def get_addresses():
     scan.update_addresses()
     q = flask.request.args.get('q')
@@ -124,7 +129,7 @@ def run_update(signum):
         for i in range(100):
             try:
                 for acc in scan.ACCOUNTS:
-                    if hash(acc) % PARALLEL == signum:
+                    if hash(acc) % PARALLEL == signum-1:
                         for region in os.getenv('REGIONS').split(','):
                             for i in range(3):
                                 try:
@@ -152,10 +157,13 @@ application = app.app
 
 try:
     import uwsgi
-    for i in range(0, 0 + PARALLEL):
+    for i in range(1, 1 + PARALLEL):
         signum = i
         uwsgi.register_signal(signum, "", run_update)
         uwsgi.add_timer(signum, 10)
+
+    import uwsgi_metrics
+    uwsgi_metrics.initialize()
 except Exception as e:
     print(e)
 

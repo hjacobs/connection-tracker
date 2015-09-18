@@ -6,3 +6,4 @@ netaddr
 redis
 graphviz
 uwsgi
+uwsgi_metrics3
