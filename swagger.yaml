@@ -23,7 +23,7 @@ paths:
   /metrics:
     get:
       tags: [System]
-      operationId: app.get_metrics
+      operationId: uwsgi_metrics.view
       summary: Get request metrics
       responses:
         200:

@@ -9,6 +9,7 @@ import requests
 import scan
 import time
 import tokens
+import uwsgi_metrics
 
 tokens.manage('tok', ['uid'])
 
@@ -22,11 +23,6 @@ requests = _session
 
 def get_health():
     return 'OK'
-
-
-def get_metrics():
-    import uwsgi_metrics
-    return uwsgi_metrics.view()
 
 
 def get_addresses():
@@ -160,7 +156,6 @@ try:
         uwsgi.register_signal(signum, "", run_update)
         uwsgi.add_timer(signum, 10)
 
-    import uwsgi_metrics
     uwsgi_metrics.initialize()
 except Exception as e:
     print(e)
