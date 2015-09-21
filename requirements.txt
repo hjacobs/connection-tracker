@@ -1,5 +1,5 @@
 boto3
-connexion>=0.10.1
+connexion>=0.10.2
 flowlogs_reader
 stups-tokens
 netaddr
