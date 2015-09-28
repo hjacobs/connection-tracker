@@ -20,7 +20,7 @@ paths:
       responses:
         200:
           description: app is healthy
-  /metrics:
+  /metrics:  # metrics endpoint is mostly for ZMON support
     get:
       tags: [System]
       operationId: uwsgi_metrics.view

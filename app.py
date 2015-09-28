@@ -103,6 +103,7 @@ def get_connections_by_account(account_id, region, date=None):
     return res
 
 
+# run this amount of background jobs in parallel
 PARALLEL = 8
 
 
@@ -156,6 +157,7 @@ try:
         uwsgi.register_signal(signum, "", run_update)
         uwsgi.add_timer(signum, 10)
 
+    # initialization for /metrics endpoint (ZMON support)
     uwsgi_metrics.initialize()
 except Exception as e:
     print(e)
