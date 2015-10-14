@@ -60,7 +60,7 @@ def cli(url, suspicious, date_from, date_to, output):
                 conn['account_id'] = account_id
                 conn['account_name'] = accounts.get(account_id, {}).get('name')
                 conn['region'] = region
-                if not suspicious or conn['dest_port'] != 443:
+                if not suspicious or conn['dest_port'] not in (0, 443):
                     rows.append(conn)
         date += datetime.timedelta(days=1)
     rows.sort(key=lambda r: (r['account_id'], r['account_name'], r['region'], r['dest'], r['dest_port']))
