@@ -146,7 +146,7 @@ def run_update(signum):
 logging.basicConfig(level=logging.INFO)
 
 logging.getLogger('botocore.vendored.requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
-app = connexion.App(__name__, port=8080)
+app = connexion.App(__name__)
 app.add_api('swagger.yaml')
 application = app.app
 
@@ -163,4 +163,4 @@ except Exception as e:
     print(e)
 
 if __name__ == '__main__':
-    app.run()
+    app.run(port=8080)
