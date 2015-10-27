@@ -139,13 +139,10 @@ def get_name(ip: str):
         try:
             info = socket.gethostbyaddr(ip)
             NAMES[ip] = '{}/{}'.format(info[0], ip)
-        except socket.herror as e:
-            # ignore "unknown host"
-            if e.errno == 1:
-                # do not attempt to resolv this IP again
-                NAMES[ip] = None
-            else:
-                logging.exception('Could not resolve %s', ip)
+        except socket.herror:
+            # ignore "unknown host" or other timeouts
+            # do not attempt to resolv this IP again
+            NAMES[ip] = None
     return NAMES.get(ip) or ip
 
 
