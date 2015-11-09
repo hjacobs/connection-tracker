@@ -52,6 +52,7 @@ def get_endpoints_by_account(account_id, region, date=None):
 
 
 def get_time(v):
+    '''Get ISO formatted time string (Swagger format) of given datetime object'''
     if v:
         return v.isoformat('T') + 'Z'
 
