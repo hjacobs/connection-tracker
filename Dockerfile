@@ -1,10 +1,11 @@
-FROM zalando/python:3.4.0-4
+FROM zalando/python:3.5.0-2
 
 # needed for uwsgi_metrics (treap module)
 RUN apt-get install m4 -q -y
 
 COPY requirements.txt /
 RUN pip3 install -r /requirements.txt
+RUN chmod +x /usr/local/bin/uwsgi
 
 COPY app.py /
 COPY scan.py /
