@@ -10,12 +10,7 @@ from graphviz import Digraph
 @click.argument('url')
 @click.option('--include', help='include additional sites/networks')
 def cli(url, include):
-    token = zign.api.get_existing_token('test')
-    if token is None:
-        print("Token 'test' expired")
-        exit(1)
-
-    access_token = token['access_token']
+    access_token = zign.api.get_token('connection-tracker', ['uid'])
 
     r = requests.get(url + '/accounts', headers={'Authorization': 'Bearer {}'.format(access_token)})
     accounts = r.json()

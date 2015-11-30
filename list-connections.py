@@ -19,10 +19,7 @@ output_option = click.option('-o', '--output', type=click.Choice(['text', 'json'
 @click.option('--date-to')
 @output_option
 def cli(url, suspicious, date_from, date_to, output):
-    token = zign.api.get_existing_token('test')
-    if token is None:
-        print("Token 'test' expired")
-        exit(1)
+    access_token = zign.api.get_token('connection-tracker', ['uid'])
 
     if date_from:
         if date_from.endswith('d'):
@@ -37,8 +34,6 @@ def cli(url, suspicious, date_from, date_to, output):
         date_to = datetime.datetime.strptime(date_to, '%Y-%m-%d')
     else:
         date_to = datetime.datetime.utcnow()
-
-    access_token = token['access_token']
 
     r = requests.get(url + '/accounts', headers={'Authorization': 'Bearer {}'.format(access_token)})
     r.raise_for_status()
