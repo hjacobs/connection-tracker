@@ -1,4 +1,4 @@
-FROM zalando/python:3.5.0-2
+FROM zalando/python:3.5.0-4
 
 # needed for uwsgi_metrics (treap module)
 RUN apt-get install m4 -q -y
