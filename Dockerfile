@@ -1,4 +1,4 @@
-FROM registry.opensource.zalan.do/stups/python:3.5.0-7
+FROM registry.opensource.zalan.do/stups/python:3.5.1-21
 
 # needed for uwsgi_metrics (treap module)
 RUN apt-get install m4 -q -y
